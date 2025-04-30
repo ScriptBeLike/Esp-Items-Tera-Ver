@@ -1,0 +1,83 @@
+-- Services
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local RuntimeItems = Workspace:WaitForChild("RuntimeItems")
+
+-- Function to create a floating text label
+local function createTextLabel(model)
+    local name = model.Name
+    
+    -- Create BillboardGui
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Size = UDim2.new(0, 200, 0, 50)  -- Initial size
+    billboardGui.Adornee = model:FindFirstChildWhichIsA("BasePart") or model.PrimaryPart
+    billboardGui.AlwaysOnTop = true
+    
+    -- Create TextLabel
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(0.5, 0, 0.5, 0)  -- Initial small size (you can adjust)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = name
+    textLabel.TextColor3 = Color3.new(1, 1, 1) -- Default white color
+    textLabel.TextScaled = true
+    textLabel.TextStrokeTransparency = 0  -- Make the stroke visible
+    textLabel.TextStrokeColor3 = Color3.new(0, 0, 0) -- Set stroke color (black)
+    textLabel.Font = Enum.Font.Gotham -- Set the font to Gotham (similar to Montserrat)
+    textLabel.Parent = billboardGui
+    billboardGui.Parent = model
+
+    -- Start the rainbow color effect in a coroutine to avoid blocking
+    coroutine.wrap(function()
+        while textLabel.Parent do
+            local tick = tick() * 2
+            textLabel.TextColor3 = Color3.fromHSV((tick % 6) / 6, 1, 1)
+            wait(0.1)
+        end
+    end)()
+
+    -- Function to adjust text size based on the player's distance
+    local function updateTextSize()
+        local player = Players.LocalPlayer
+        local camera = Workspace.CurrentCamera
+        if player and camera then
+            local distance = (model.PrimaryPart.Position - camera.CFrame.Position).magnitude
+
+            -- Define a minimum distance at which the text will not change size
+            local minDistanceForSizeChange = 50  -- Adjust this value as needed
+            local sizeFactor = 0.5  -- Static small size factor
+
+            if distance < minDistanceForSizeChange then
+                textLabel.Size = UDim2.new(sizeFactor, 0, sizeFactor, 0)
+            else
+                -- If the player is beyond the minimum distance, keep the text small
+                textLabel.Size = UDim2.new(sizeFactor, 0, sizeFactor, 0)
+            end
+        end
+    end
+
+    -- Connect the updateTextSize function to Heartbeat to continuously update
+    RunService.Heartbeat:Connect(updateTextSize)
+end
+
+-- Function to add floating text to all existing models
+local function addTextToExistingModels()
+    for _, model in pairs(RuntimeItems:GetChildren()) do
+        if model:IsA("Model") then
+            createTextLabel(model)
+        end
+    end
+end
+
+-- Function to monitor and add text to new models
+local function monitorRuntimeItems()
+    RuntimeItems.ChildAdded:Connect(function(model)
+        if model:IsA("Model") then
+            createTextLabel(model)
+        end
+    end)
+end
+
+-- Initial setup
+addTextToExistingModels() -- Add text to existing models
+monitorRuntimeItems() -- Set up monitoring for new models
